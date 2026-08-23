@@ -1,14 +1,5 @@
 require('dotenv').config();
 
-// SAFETY NET: prevent unhandled errors from crashing the whole bot
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('⚠️ Unhandled Rejection at:', promise, 'reason:', reason);
-});
-
-process.on('uncaughtException', (err) => {
-  console.error('⚠️ Uncaught Exception:', err);
-});
-
 const express = require('express');
 const app = express();
 
@@ -867,7 +858,6 @@ new ButtonBuilder()
 }
 
 client.on('interactionCreate', async interaction => {
-  try {
    console.log("Interaction received:", interaction.customId);
   if (
   !interaction.isButton() &&
@@ -2035,17 +2025,6 @@ if (interaction.customId === 'party_delete') {
 
   await interaction.message.delete();
 }
-
-  } catch (err) {
-    console.error('❌ Error in interactionCreate:', err);
-    try {
-      if (interaction.deferred || interaction.replied) {
-        await interaction.editReply({ content: '⚠️ Something went wrong. Please try again.' });
-      } else {
-        await interaction.reply({ content: '⚠️ Something went wrong. Please try again.', ephemeral: true });
-      }
-    } catch (_) { /* ignore secondary errors */ }
-  }
 });
 
 
@@ -2110,16 +2089,66 @@ client.on('messageCreate', async message => {
       });
     }
 
-    if (form.step === 'statsGear') {
-      if (!message.attachments.size) {
-        return message.reply('Please upload an image of your stats and gears as an attachment.');
+  if (form.step === 'statsGear') {
+
+  console.log('📸 Question 6 message received');
+  console.log('   User:', message.author.tag);
+  console.log('   Attachments:', message.attachments.size);
+  console.log(
+    '   Attachment details:',
+    [...message.attachments.values()].map(file => ({
+      name: file.name,
+      url: file.url,
+      contentType: file.contentType
+    }))
+  );
+  console.log('   Message content:', message.content);
+
+  // Get all uploaded attachments
+  const attachments = [...message.attachments.values()];
+
+  // Accept image attachments
+  const imageAttachments = attachments.filter(file => {
+    const contentType = file.contentType || '';
+    const fileName = file.name || '';
+
+    return (
+      contentType.startsWith('image/') ||
+      /\.(png|jpg|jpeg|gif|webp)$/i.test(fileName)
+    );
+  });
+
+  // Also accept image URLs pasted directly into the DM
+  const urlImages = [];
+
+  if (message.content) {
+    const urls = message.content.match(
+      /https?:\/\/[^\s]+/gi
+    ) || [];
+
+    for (const url of urls) {
+      if (/\.(png|jpg|jpeg|gif|webp)(\?.*)?$/i.test(url)) {
+        urlImages.push(url);
       }
+    }
+  }
 
-      const attachmentLinks = [...message.attachments.values()]
-        .map(file => file.url)
-        .join('\n');
+  // Combine attachment URLs + direct image URLs
+  const attachmentLinks = [
+    ...imageAttachments.map(file => file.url),
+    ...urlImages
+  ];
 
-      const appId = getNextAppId();
+  // No image found
+  if (attachmentLinks.length === 0) {
+    return message.reply(
+      '📸 Please upload an image of your **stats and gears**. You can send one or more screenshots directly in this DM.'
+    );
+  }
+
+  console.log(`✅ ${attachmentLinks.length} image(s) received.`);
+
+  const appId = getNextAppId();
 
     const app = {
   appId,
@@ -2311,47 +2340,4 @@ cron.schedule('0 22 * * 5', async () => {
 
 
 
-client.once('ready', () => {
-  console.log(`✅ West Coast bot is online as ${client.user.tag}`);
-});
-
-client.on('debug', (message) => {
-  console.log('🐛 DISCORD DEBUG:', message);
-});
-
-client.on('warn', (message) => {
-  console.warn('⚠️ DISCORD WARNING:', message);
-});
-
-client.on('error', (error) => {
-  console.error('❌ DISCORD ERROR:', error);
-});
-
-client.on('shardError', (error) => {
-  console.error('❌ SHARD ERROR:', error);
-});
-
-client.on('shardReady', (id) => {
-  console.log(`✅ SHARD ${id} READY`);
-});
-
-console.log(
-  '🔐 DISCORD_TOKEN exists:',
-  !!process.env.DISCORD_TOKEN,
-  'length:',
-  process.env.DISCORD_TOKEN?.length
-);
-
-console.log('🚀 About to login to Discord...');
-
-client.login(process.env.DISCORD_TOKEN)
-  .then(() => {
-    console.log('🔑 Discord login successful');
-  })
-  .catch((error) => {
-    console.error('❌ Discord login failed:', error);
-  });
-
-setTimeout(() => {
-  console.log('⏰ 30 seconds passed — Discord login still has not completed.');
-}, 30000);
+client.login(process.env.DISCORD_TOKEN);
