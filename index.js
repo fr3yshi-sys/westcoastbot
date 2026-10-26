@@ -2340,4 +2340,9 @@ cron.schedule('0 22 * * 5', async () => {
 
 
 
-client.login(process.env.DISCORD_TOKEN);
+console.log('Token present:', Boolean(process.env.DISCORD_TOKEN));
+   client.on('error', console.error);
+   client.on('warn', console.warn);
+   client.login(process.env.DISCORD_TOKEN)
+     .then(() => console.log('Login request accepted'))
+     .catch(err => console.error('LOGIN FAILED:', err));
