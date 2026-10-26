@@ -2343,6 +2343,9 @@ cron.schedule('0 22 * * 5', async () => {
 console.log('Token present:', Boolean(process.env.DISCORD_TOKEN));
    client.on('debug', m => console.log('[debug]', m));
    client.rest.on('rateLimited', info => console.log('[RATE LIMITED]', info));
+fetch('https://discord.com/api/v10/gateway', { signal: AbortSignal.timeout(15000) })
+  .then(r => console.log('[TEST] Discord API status:', r.status))
+  .catch(e => console.log('[TEST] Discord API failed:', e.message));
    client.on('error', console.error);
    client.on('warn', console.warn);
    client.login(process.env.DISCORD_TOKEN)
