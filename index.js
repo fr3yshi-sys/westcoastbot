@@ -2341,6 +2341,8 @@ cron.schedule('0 22 * * 5', async () => {
 
 
 console.log('Token present:', Boolean(process.env.DISCORD_TOKEN));
+   client.on('debug', m => console.log('[debug]', m));
+   client.rest.on('rateLimited', info => console.log('[RATE LIMITED]', info));
    client.on('error', console.error);
    client.on('warn', console.warn);
    client.login(process.env.DISCORD_TOKEN)
